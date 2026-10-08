@@ -31,3 +31,10 @@ export const toneText: Record<ScoreTone, string> = {
   mid: "text-warning",
   low: "text-danger",
 };
+
+const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+/** "Oct 8, 2026" */
+export function formatDate(iso: string) {
+  return dateFormat.format(new Date(iso));
+}

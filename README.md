@@ -15,6 +15,43 @@ cp .env.example .env.local   # fill in keys as each step needs them
 npm run dev                  # http://localhost:3000
 ```
 
+### Supabase
+
+**Hosted project**
+
+1. Create a project at supabase.com.
+2. Run the migration: `npx supabase link --project-ref <ref>` then `npx supabase db push`
+   (or paste `supabase/migrations/*.sql` into the SQL editor).
+3. Copy the project URL, anon key and service role key into `.env.local`.
+4. Auth → URL Configuration: set Site URL to your app URL and add
+   `<your-url>/auth/callback` to the redirect URLs.
+5. Google sign-in: Auth → Providers → Google. Create an OAuth client in Google Cloud
+   with the redirect URI Supabase shows you, and paste the client ID and secret.
+6. Video uploads up to 200 MB need the Pro plan (the Free plan caps files at 50 MB).
+   Raise the global file size limit under Storage → Settings.
+
+**Local (Docker)**
+
+```bash
+npx supabase start          # applies supabase/migrations, prints local keys
+```
+
+Put the printed API URL, anon key and service role key in `.env.local`. Email
+confirmation is off locally, so sign-up logs you straight in.
+
+### Data model
+
+- `profiles`: one row per user (created by a trigger on sign-up), `credits` defaults to 3.
+- `analyses`: one row per video, with inputs, transcript, result JSON, score and status.
+- RLS is on for both tables. Users read and write only their own rows, and column
+  privileges stop them from editing credits, plan, status or results. Those are written
+  by server routes with the service role.
+- Credits change only through `consume_credit`, `refund_credit` and `set_plan_credits`,
+  which are atomic and executable by the service role only.
+- Shared reports are read through `get_shared_analysis(slug)`, which returns one
+  analysis by its exact slug and leaves out private inputs.
+- Storage: private `videos` bucket, one folder per user (`{user_id}/{analysis_id}/...`).
+
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Dev server |
@@ -43,20 +80,26 @@ Fonts: Inter (`font-sans`) and JetBrains Mono (`font-mono`) via `next/font`.
 ## Project layout
 
 ```
-app/                    routes (landing page, not-found, icon)
+app/                    routes: landing, (auth) sign-in/up, (app) dashboard…, auth callbacks
+proxy.ts                session refresh + auth redirects (Next 16's "middleware")
+supabase/               config.toml + SQL migrations
 components/brand/       Logo + LogoMark (SVG)
 components/site/        Navbar, Footer, SectionHeading
 components/landing/     landing page sections
 components/charts/      DropOffChart (shared by the landing preview and the report page)
 components/app/         ScoreRing, StatCard, IconTile (shared with the dashboard)
+components/auth/        sign-in / sign-up forms
+components/dashboard/   dashboard tabs, lists, insights
 components/ui/          shadcn/ui primitives
-lib/                    utils, drop-off curve math, dashboard tool config
+lib/supabase/           browser, server, admin (service role) and proxy clients
+lib/analysis/           result schema (Zod) and dashboard stats
+lib/                    auth helpers, data loaders, env, utils, drop-off curve math
 ```
 
 ## Build plan
 
 1. ✅ Scaffold, design tokens, logo, landing page
-2. Auth, database schema, dashboard shell
+2. ✅ Auth, database schema, dashboard shell
 3. Upload, frame extraction, transcription
 4. Claude analysis route and report page
 5. Compare, pricing, Stripe
