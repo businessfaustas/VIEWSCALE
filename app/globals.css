@@ -153,3 +153,16 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
 }
+
+/* Export as PDF: keep the dark design in the printed report. */
+@media print {
+  html,
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    margin: 10mm;
+  }
+}

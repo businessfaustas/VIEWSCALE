@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import {
   Area,
@@ -25,7 +25,7 @@ import {
   timeTicks,
   type DropOffRisk,
 } from "@/lib/drop-off";
-import { cn, formatTimestamp } from "@/lib/utils";
+import { cn, formatMoment, formatTimestamp } from "@/lib/utils";
 
 type DropOffChartProps = {
   risks: DropOffRisk[];
@@ -37,6 +37,9 @@ type DropOffChartProps = {
 };
 
 const MONO = "var(--font-jetbrains-mono), ui-monospace, monospace";
+
+/** Dispatched by "Export as PDF" a moment before window.print(). */
+export const PREPARE_PRINT_EVENT = "viewscale:prepare-print";
 const DRAW_MS = 1800;
 
 export function DropOffChart({
@@ -48,22 +51,33 @@ export function DropOffChart({
 }: DropOffChartProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.35 });
+  // Printing (Export as PDF) needs the chart drawn even if it was never scrolled to.
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const onPrint = () => setPrinting(true);
+    window.addEventListener("beforeprint", onPrint);
+    window.addEventListener(PREPARE_PRINT_EVENT, onPrint);
+    return () => {
+      window.removeEventListener("beforeprint", onPrint);
+      window.removeEventListener(PREPARE_PRINT_EVENT, onPrint);
+    };
+  }, []);
   const reduce = useReducedMotion() ?? false;
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   const { points } = useMemo(() => buildRiskCurve(risks, duration), [risks, duration]);
   const ticks = useMemo(() => timeTicks(duration), [duration]);
-  const animate = !reduce;
+  const animate = !reduce && !printing;
 
   return (
     <div ref={ref} className={cn("w-full", className)} style={{ height }}>
       <p className="sr-only">
         Estimated drop-off risk across {formatTimestamp(duration)}.{" "}
         {risks
-          .map((r) => `${formatTimestamp(r.timestamp)}: ${r.reason} (${r.severity} risk)`)
+          .map((r) => `${formatMoment(r.timestamp)}: ${r.reason} (${r.severity} risk)`)
           .join(". ")}
       </p>
-      {inView && (
+      {(inView || printing) && (
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={points} margin={{ top: 60, right: 18, bottom: 0, left: 18 }}>
             <defs>
@@ -178,7 +192,8 @@ function RiskMarkers({
         const cy = Number(yScale(riskAt(risk.timestamp, risks, duration)));
         const color = severityColor[risk.severity];
         const reason = risk.reason.length > 22 ? `${risk.reason.slice(0, 21)}…` : risk.reason;
-        const w = Math.max(reason.length, 5) * charW + 20;
+        const stamp = formatMoment(risk.timestamp);
+        const w = Math.max(reason.length * charW + 20, stamp.length * charW + 27);
         const h = lineH * 2 + 8;
         const x = Math.min(Math.max(cx - w / 2, plot.x), plot.x + plot.width - w);
 
@@ -227,7 +242,7 @@ function RiskMarkers({
                   fill={chartColors.axis}
                   style={{ fontFamily: MONO, fontSize }}
                 >
-                  {formatTimestamp(risk.timestamp)}
+                  {stamp}
                 </text>
                 <text
                   x={box.x + 10}
@@ -263,7 +278,7 @@ function RiskTooltip({
   return (
     <div className="rounded-lg border border-border bg-surface-raised px-3 py-2 shadow-xl">
       <p className="text-sm font-semibold text-foreground">{Math.round(point.risk)}% risk</p>
-      <p className="font-mono text-[11px] text-muted-foreground">at {formatTimestamp(point.t)}</p>
+      <p className="font-mono text-[11px] text-muted-foreground">at {formatMoment(point.t)}</p>
       {nearby && (
         <p className="mt-1.5 flex items-center gap-1.5 text-xs text-foreground">
           <span

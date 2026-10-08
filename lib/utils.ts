@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** "0:03" when on a whole second, "0:01.5" otherwise. For pointing at a moment. */
+export function formatMoment(seconds: number) {
+  const tenths = Math.round(Math.max(0, seconds) * 10) / 10;
+  if (Number.isInteger(tenths)) return formatTimestamp(tenths);
+  const whole = Math.floor(tenths);
+  return `${formatTimestamp(whole)}.${Math.round((tenths - whole) * 10)}`;
+}
+
 /** Formats seconds as m:ss, e.g. 3 -> "0:03", 72.4 -> "1:12". */
 export function formatTimestamp(seconds: number) {
   const s = Math.max(0, Math.floor(seconds));

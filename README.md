@@ -101,7 +101,7 @@ lib/                    auth helpers, data loaders, env, utils, drop-off curve m
 1. ✅ Scaffold, design tokens, logo, landing page
 2. ✅ Auth, database schema, dashboard shell
 3. ✅ Upload, frame extraction, transcription
-4. Claude analysis route and report page
+4. ✅ Claude analysis route and report page
 5. Compare, pricing, Stripe
 
 ## Analysis pipeline
@@ -118,7 +118,39 @@ All heavy lifting on the video happens in the browser, so no server ffmpeg is ne
 5. `POST /api/transcribe` sends the WAV to Whisper and stores timestamped segments. No
    audio, silent audio or a Whisper failure is recorded, and the analysis continues from
    frames only.
-6. `POST /api/analyze` runs Claude (step 4).
+6. `POST /api/analyze` takes one credit atomically (`consume_credit`), sends the labeled
+   frames (base64), transcript, platform, context and any real performance data to Claude,
+   and saves the result. Any failure refunds the credit (`refund_credit`) and marks the
+   analysis failed. The upload page offers "Retry analysis".
+
+### Claude call (`lib/analysis/claude.ts`)
+
+- Model from `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`), streamed, adaptive thinking,
+  `effort: "high"`.
+- The system prompt lives in `lib/prompts/viewscale.ts` and is prompt-cached.
+- Structured output: a JSON schema (`lib/analysis/output-schema.ts`) makes the API return
+  JSON of the right shape. The result is then validated with Zod
+  (`lib/analysis/schema.ts`: exactly 12 areas, exactly 3 top fixes, score range). If
+  validation fails, the request is retried once with the validation errors included.
+- Server-side refusal fallback (`fallbacks: "default"`, beta
+  `server-side-fallback-2026-07-01`): if the model declines on policy grounds in a category
+  that supports it, the API retries on a fallback model. Claude API only.
+- The result is normalized before saving: canonical area order, timestamps clamped to the
+  video, and known missing inputs (no transcript, caption or performance data) always
+  listed.
+
+### Report (`/analysis/[id]`)
+
+Embedded player with timestamp chips that seek it, score ring, final verdict, estimated
+drop-off chart (labeled as an estimate; real performance data is shown separately and
+labeled as real), summary cards, top 3 fixes, hook alternatives with copy buttons, 12 area
+accordions, what to keep, and missing inputs.
+
+- **Export as PDF** opens the browser's print dialog with every section expanded and the
+  dark theme kept.
+- **Share link** creates a random 32-character slug. `/share/<slug>` is a public,
+  read-only view that leaves out the caption and performance data. "Stop sharing" turns
+  the link off.
 
 ## Notes
 
