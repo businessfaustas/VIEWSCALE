@@ -100,9 +100,25 @@ lib/                    auth helpers, data loaders, env, utils, drop-off curve m
 
 1. ✅ Scaffold, design tokens, logo, landing page
 2. ✅ Auth, database schema, dashboard shell
-3. Upload, frame extraction, transcription
+3. ✅ Upload, frame extraction, transcription
 4. Claude analysis route and report page
 5. Compare, pricing, Stripe
+
+## Analysis pipeline
+
+All heavy lifting on the video happens in the browser, so no server ffmpeg is needed.
+
+1. `POST /api/analyses` checks credits and creates the row, then returns the Storage paths.
+2. The browser uploads the video straight to Supabase Storage (with progress).
+3. In parallel it extracts frames with a hidden `<video>` + `<canvas>` (`lib/video/frames.ts`):
+   every 0.5s for the first 3s, then every 1.5s, at most 40 frames, 512px wide JPEG. The
+   first and last frames are always included. On long videos the spacing after 3s widens
+   so the whole video stays covered within 40 frames.
+4. It decodes the audio track to 16 kHz mono WAV (`lib/video/audio.ts`) and uploads it.
+5. `POST /api/transcribe` sends the WAV to Whisper and stores timestamped segments. No
+   audio, silent audio or a Whisper failure is recorded, and the analysis continues from
+   frames only.
+6. `POST /api/analyze` runs Claude (step 4).
 
 ## Notes
 

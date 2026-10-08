@@ -60,6 +60,7 @@ function Status({ item }: { item: AnalysisListItem }) {
     return <ScoreRing score={item.score} size={44} strokeWidth={4} />;
   }
   const failed = item.status === "failed";
+  const label = failed ? "Failed" : item.status === "uploading" ? "Incomplete" : "Processing";
   return (
     <span
       className={cn(
@@ -67,7 +68,7 @@ function Status({ item }: { item: AnalysisListItem }) {
         failed ? "border-danger/30 text-danger" : "border-border text-muted-foreground",
       )}
     >
-      {failed ? "Failed" : "Processing"}
+      {label}
     </span>
   );
 }
