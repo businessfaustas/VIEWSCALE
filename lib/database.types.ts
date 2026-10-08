@@ -54,6 +54,12 @@ export type Database = {
         Update: Partial<AnalysisRow>;
         Relationships: [];
       };
+      stripe_events: {
+        Row: { id: string; type: string; received_at: string };
+        Insert: { id: string; type: string; received_at?: string };
+        Update: { id?: string; type?: string; received_at?: string };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {

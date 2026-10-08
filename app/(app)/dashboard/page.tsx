@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BarChart3, Plus, Video } from "lucide-react";
 
 import { ScoreRing } from "@/components/app/score-ring";
+import { CheckoutNotice } from "@/components/pricing/checkout-notice";
 import { StatCard } from "@/components/app/stat-card";
 import { AnalysisList } from "@/components/dashboard/analysis-list";
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
@@ -21,6 +22,9 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <Suspense fallback={null}>
+        <CheckoutNotice />
+      </Suspense>
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl tracking-[-0.03em] sm:text-4xl">Dashboard</h1>
