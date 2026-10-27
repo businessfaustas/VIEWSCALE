@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
+import { SetupNotice } from "@/components/site/setup-notice";
 import { UploadFlow } from "@/components/upload/upload-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth";
@@ -29,7 +30,8 @@ export default function UploadPage() {
 async function Gate() {
   await requireUser("/upload");
   const profile = await getProfile();
-  return <UploadFlow credits={profile?.credits ?? 0} />;
+  if (!profile) return <SetupNotice kind="database" />;
+  return <UploadFlow credits={profile.credits} />;
 }
 
 function UploadSkeleton() {

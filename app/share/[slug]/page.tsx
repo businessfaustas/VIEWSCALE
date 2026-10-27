@@ -7,6 +7,7 @@ import { ReportView } from "@/components/report/report-view";
 import { Footer } from "@/components/site/footer";
 import { Navbar } from "@/components/site/navbar";
 import { toReportData } from "@/lib/analysis/report";
+import { isSupabaseConfigured } from "@/lib/env";
 import { VIDEO_BUCKET } from "@/lib/storage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -32,7 +33,7 @@ export default function SharedReportPage({ params }: PageProps<"/share/[slug]">)
 
 async function SharedReport({ params }: { params: PageProps<"/share/[slug]">["params"] }) {
   const { slug } = await params;
-  if (!/^[A-Za-z0-9_-]{16,64}$/.test(slug)) notFound();
+  if (!isSupabaseConfigured() || !/^[A-Za-z0-9_-]{16,64}$/.test(slug)) notFound();
 
   // Public read by exact slug only (SECURITY DEFINER function, no table access).
   const supabase = await createClient();

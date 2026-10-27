@@ -9,6 +9,21 @@ import { createClient } from "@/lib/supabase/server";
 
 export type ProfileWithEmail = Profile & { email: string | null };
 
+/** A database error that keeps Supabase's error code (e.g. for a missing table). */
+export class DataError extends Error {
+  constructor(
+    message: string,
+    public code?: string,
+  ) {
+    super(message);
+  }
+}
+
+/** True when the tables don't exist yet, i.e. the migrations were never run. */
+export function isMissingSchema(err: unknown) {
+  return err instanceof DataError && (err.code === "42P01" || err.code === "PGRST205");
+}
+
 /** The signed-in user's profile, deduplicated per request. */
 export const getProfile = cache(async (): Promise<ProfileWithEmail | null> => {
   const user = await getUser();
@@ -35,7 +50,7 @@ export const getAnalyses = cache(async (limit = 50): Promise<AnalysisListItem[]>
     .select("id, platform, score, status, created_at, thumbnail_path, duration, result, metadata")
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) throw new Error(`Couldn't load your analyses: ${error.message}`);
+  if (error) throw new DataError(`Couldn't load your analyses: ${error.message}`, error.code);
 
   const rows = data ?? [];
   const paths = rows.map((r) => r.thumbnail_path).filter((p): p is string => Boolean(p));

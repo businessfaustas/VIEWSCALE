@@ -9,6 +9,11 @@ function required(name: string, value: string | undefined) {
   return value;
 }
 
+/** True when the Supabase URL and anon key are set. Without them the app runs signed-out only. */
+export function isSupabaseConfigured() {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
 export const publicEnv = {
   get supabaseUrl() {
     return required("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);

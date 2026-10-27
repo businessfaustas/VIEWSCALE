@@ -7,11 +7,14 @@ export function AuthShell({
   subtitle,
   children,
   footer,
+  notice,
 }: {
   title: string;
   subtitle: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** Shown above the card, e.g. a setup warning. */
+  notice?: React.ReactNode;
 }) {
   return (
     <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-4 py-12">
@@ -24,6 +27,7 @@ export function AuthShell({
         <Link href="/" aria-label="ViewScale home" className="mx-auto mb-8 flex w-fit">
           <Logo />
         </Link>
+        {notice && <div className="mb-6">{notice}</div>}
         <div className="surface-card p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] sm:p-8">
           <h1 className="text-2xl tracking-tight">{title}</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>

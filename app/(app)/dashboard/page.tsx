@@ -10,11 +10,12 @@ import { AnalysisList } from "@/components/dashboard/analysis-list";
 import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { Insights } from "@/components/dashboard/insights";
 import { ToolGrid } from "@/components/dashboard/tool-grid";
+import { SetupNotice } from "@/components/site/setup-notice";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { areaBreakdown, dashboardStats } from "@/lib/analysis/stats";
 import { requireUser } from "@/lib/auth";
-import { getAnalyses, getProfile } from "@/lib/data";
+import { getAnalyses, getProfile, isMissingSchema } from "@/lib/data";
 import { cn, scoreTone, toneText } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -70,7 +71,14 @@ async function Welcome() {
 
 async function DashboardData() {
   await requireUser("/dashboard");
-  const [profile, analyses] = await Promise.all([getProfile(), getAnalyses()]);
+  let profile, analyses;
+  try {
+    [profile, analyses] = await Promise.all([getProfile(), getAnalyses()]);
+  } catch (err) {
+    if (isMissingSchema(err)) return <SetupNotice kind="database" />;
+    throw err;
+  }
+  if (!profile) return <SetupNotice kind="database" />;
   const stats = dashboardStats(analyses);
   const breakdown = areaBreakdown(analyses);
 

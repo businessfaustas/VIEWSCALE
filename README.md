@@ -71,6 +71,23 @@ into `VIEWSCALE_SYSTEM_PROMPT`, without its "Output format" section
 (`OUTPUT_FORMAT_INSTRUCTIONS` replaces it), then set `PROMPT_IS_PLACEHOLDER` to `false`.
 Until then, the server logs a warning on the first analysis.
 
+## Troubleshooting
+
+**"This page couldn't load" after the layout appears.** A server-side part of the page
+threw an error. The browser only shows a generic message (often "Minified React error
+#441"). The real error is in the server logs: the terminal running `npm run dev` /
+`npm start`, or your Vercel project's **Logs** tab. The error ID on the page matches the
+`digest` in the log.
+
+The usual causes, which the app now explains on screen:
+
+- **Supabase keys missing:** the site works signed-out and sign-in shows
+  "Supabase isn't connected yet". Add the keys and redeploy (`NEXT_PUBLIC_*` values are
+  baked in at build time, so a redeploy is required).
+- **Migrations not run:** the dashboard shows "Your account isn't set up in the
+  database". Run `supabase/migrations/*.sql` in order, then create your account again if
+  you signed up before running them.
+
 ## Scripts
 
 | Script | What it does |

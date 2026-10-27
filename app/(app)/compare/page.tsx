@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AREA_IDS, AREA_LABELS, analysisResultSchema, type AnalysisResult, type Rating } from "@/lib/analysis/schema";
 import { requireUser } from "@/lib/auth";
-import { getAnalyses, type AnalysisListItem } from "@/lib/data";
+import { getAnalyses, isMissingSchema, type AnalysisListItem } from "@/lib/data";
+import { SetupNotice } from "@/components/site/setup-notice";
 import { platformLabel } from "@/lib/platforms";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -42,8 +43,16 @@ async function Comparison({ searchParams }: { searchParams: PageProps<"/compare"
   const params = await searchParams;
   const pick = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
 
+  let items: AnalysisListItem[];
+  try {
+    items = await getAnalyses(100);
+  } catch (err) {
+    if (isMissingSchema(err)) return <SetupNotice kind="database" />;
+    throw err;
+  }
+
   const complete: Scored[] = [];
-  for (const item of await getAnalyses(100)) {
+  for (const item of items) {
     if (item.status !== "complete") continue;
     const parsed = analysisResultSchema.safeParse(item.result);
     if (parsed.success) complete.push({ ...item, parsed: parsed.data });

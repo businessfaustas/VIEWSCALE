@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 const CALLBACK_ERRORS: Record<string, string> = {
   google: "Google sign-in didn't start. Try again, or use email instead.",
   callback: "That sign-in link is invalid or has expired. Try signing in again.",
+  config: "Sign-in isn't connected yet. Add the Supabase keys to the environment variables, then redeploy.",
 };
 
 export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {

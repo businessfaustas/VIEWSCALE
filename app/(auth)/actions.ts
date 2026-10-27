@@ -5,10 +5,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { safeNext } from "@/lib/auth";
-import { publicEnv } from "@/lib/env";
+import { isSupabaseConfigured, publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = { error?: string; message?: string; email?: string; name?: string };
+
+const NOT_CONNECTED =
+  "Sign-in isn't connected yet. Add the Supabase URL and anon key to the environment variables, then redeploy.";
 
 async function siteOrigin() {
   const origin = (await headers()).get("origin");
@@ -22,6 +25,7 @@ const signInSchema = z.object({
 
 export async function signInWithPassword(_: AuthState, formData: FormData): Promise<AuthState> {
   const email = String(formData.get("email") ?? "").trim();
+  if (!isSupabaseConfigured()) return { error: NOT_CONNECTED, email };
   const parsed = signInSchema.safeParse({ email, password: formData.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message, email };
 
@@ -49,6 +53,7 @@ const signUpSchema = z.object({
 export async function signUp(_: AuthState, formData: FormData): Promise<AuthState> {
   const email = String(formData.get("email") ?? "").trim();
   const name = String(formData.get("name") ?? "");
+  if (!isSupabaseConfigured()) return { error: NOT_CONNECTED, email, name };
   const parsed = signUpSchema.safeParse({ name, email, password: formData.get("password") });
   // Echo inputs back: React resets the form after an action runs.
   if (!parsed.success) return { error: parsed.error.issues[0]?.message, email, name };
@@ -72,6 +77,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
 }
 
 export async function signInWithGoogle(formData: FormData) {
+  if (!isSupabaseConfigured()) redirect("/sign-in?error=config");
   const next = safeNext(formData.get("next") as string | null);
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -83,6 +89,7 @@ export async function signInWithGoogle(formData: FormData) {
 }
 
 export async function signOut() {
+  if (!isSupabaseConfigured()) redirect("/");
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");

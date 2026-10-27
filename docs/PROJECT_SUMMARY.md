@@ -116,7 +116,7 @@ These requirements came from the product owner. Keep them intact when changing t
 
 | Package | Version | Use |
 | --- | --- | --- |
-| next | 16.4.0 | App Router, Turbopack, Cache Components, Partial Prefetching |
+| next | 16.4.3 | App Router, Turbopack, Cache Components, Partial Prefetching (upgraded from 16.4.0 for a security fix) |
 | react / react-dom | 19.3.0 | |
 | tailwindcss | 4.3.3 | CSS-first config in `app/globals.css` |
 | radix-ui | 1.7.0 | Unified Radix package used by the shadcn components |
@@ -675,6 +675,14 @@ There is no automated test suite in the repo; adding a test framework would be a
 - H.264 decoding: the headless Chromium used lacks proprietary codecs, so VP9 MP4s were used. Real Chrome, Safari and Edge decode H.264.
 
 ---
+
+## 15a. Error handling and missing setup
+
+- `getUser()` never throws. With Supabase not configured or unreachable, the visitor is treated as signed out (it re-throws Next.js control-flow errors with `unstable_rethrow`). Public pages therefore render without any keys.
+- Without Supabase keys: sign-in/sign-up show a "Supabase isn't connected yet" notice, the auth actions return that message instead of throwing, protected pages redirect to sign-in, and share links 404.
+- With keys but no tables (migrations not run) or no profile row: dashboard, compare and upload show "Your account isn't set up in the database" (`components/site/setup-notice.tsx`). `getAnalyses` throws a `DataError` carrying the Postgres/PostgREST code; `isMissingSchema()` checks for `42P01` / `PGRST205`.
+- Any other server error lands in an error boundary: `app/(app)/error.tsx` (inside the app shell), `app/error.tsx` (public pages, with navbar and footer) and `app/global-error.tsx` (root layout failures). They show an error ID (the `digest`) that matches the full message in the server logs, plus "Try again" (`retry()`, Next 16's re-fetching reset) and "Go home".
+- Production browsers only ever see a generic message ("Minified React error #441" in the console); the real message is in the server logs.
 
 ## 16. Known limitations and suggested next steps
 
